@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily QC Line Report - HSSI</title>
+<style>
+:root{
+  --green:#0f7a3d; --green-d:#0a5a2d; --ink:#1c211e; --muted:#5d675f;
+  --paper:#eef0ec; --card:#fff; --line:#d3d8d1; --amber:#b7791f; --red:#c0392b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+header{background:var(--green);color:#fff;padding:14px 16px}
+header h1{margin:0;font-size:19px;letter-spacing:.2px}
+header p{margin:2px 0 0;font-size:13px;opacity:.85}
+main{max-width:720px;margin:0 auto;padding:12px}
+.banner{background:#fff4d6;border:1px solid #e6c667;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.card>h2{margin:0;padding:10px 14px;font-size:16px;background:#dfe5dc;display:flex;justify-content:space-between;align-items:center}
+.badge{font-size:13px;font-weight:600;background:var(--green);color:#fff;border-radius:999px;padding:1px 9px}
+.badge.zero{background:#9aa39b}
+.body{padding:12px 14px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
+input,select,textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid #b9c0b7;border-radius:7px;background:#fff;color:var(--ink)}
+textarea{resize:vertical;min-height:44px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;padding:4px 12px 12px;margin-bottom:10px;background:#fafbf9}
+.row-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding-top:8px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:9px 6px;border:1px solid #b9c0b7;background:#fff;border-radius:7px;font:inherit;font-weight:600;color:var(--muted)}
+.seg button.on.Open,.seg button.on.Hold{background:var(--amber);border-color:var(--amber);color:#fff}
+.seg button.on.Closed,.seg button.on.OK{background:var(--green);border-color:var(--green);color:#fff}
+.seg button.on.NG{background:var(--red);border-color:var(--red);color:#fff}
+.add{width:100%;padding:10px;border:1.5px dashed var(--green);background:#fff;color:var(--green-d);font:inherit;font-weight:600;border-radius:8px}
+.del{border:0;background:none;color:var(--red);font:inherit;font-size:13px;padding:4px 0}
+.none{color:var(--muted);font-size:14px;margin:0 0 10px}
+.carry{background:#fff4d6;border-color:#e6c667}
+.carry .item{padding:8px 0;border-top:1px solid #ecd9a0;font-size:14px}
+.carry .item:first-of-type{border-top:0}
+.carry button{margin-top:6px;padding:6px 12px;border:1px solid var(--amber);background:#fff;color:var(--amber);border-radius:7px;font:inherit;font-weight:600}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+.bar button{flex:1;max-width:240px;padding:12px;border-radius:9px;border:0;font:inherit;font-weight:700}
+#save{background:var(--green);color:#fff}
+#wag{background:#25d366;color:#08331a}
+#copy{flex:0 0 auto;background:#e6e9e4;color:var(--ink)}
+.bar button:disabled{opacity:.55}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;max-width:90%;display:none;text-align:center}
+.toast.err{background:var(--red)}
+.top-actions{display:flex;justify-content:flex-end;margin-bottom:8px}
+.top-actions button{border:0;background:none;color:var(--muted);text-decoration:underline;font:inherit;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Daily QC Line Report</h1>
+  <p>HSSI</p>
+</header>
+<main>
+  <div id="banner"></div>
+  <div class="top-actions"><button id="new" type="button">Laporan baru</button></div>
+  <div id="app"></div>
+</main>
+<div class="bar">
+  <button id="save" type="button">Simpan</button>
+  <button id="wag" type="button">Kirim ke WAG</button>
+  <button id="copy" type="button">Salin</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// 1) Tempel URL Web App Apps Script di sini (hasil Deploy).
+const API_URL = 'https://script.google.com/macros/s/AKfycbwsP-VS2e52Y1L6I_HGl9K0lwCBKmYzK7zMsULS8AIsqH7Zgjh5GMk-N6MOGuF-b6Tq/exec';
+
+const DEFAULT_LISTS = { line: ['Line 1','Line 2','Line 3'], qc: [], shift: ['Shift 1','Shift 2','Shift 3'] };
+let lists = { ...DEFAULT_LISTS };
+let openItems = [];
+
+const now = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+
+const SECTIONS = {
+  abnormal: { title: '1. Abnormal Proses', add: 'Tambah abnormal',
+    fields: [
+      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
+      { k:'problem', l:'Problem detail', t:'area' }, { k:'rootcause', l:'Root cause', t:'area' },
+      { k:'action', l:'Corrective action', t:'area' },
+      { k:'status', l:'Status', t:'seg', o:['Open','Closed'] } ],
+    empty: () => ({ line:'', jam:now(), problem:'', rootcause:'', action:'', status:'Open', parentId:'' }) },
+  judgment: { title: '2. Judgment Proses', add: 'Tambah judgment',
+    fields: [
+      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
+      { k:'jenis', l:'Jenis masalah', t:'area' },
+      { k:'hasil', l:'Hasil judgment', t:'seg', o:['OK','NG','Hold'] },
+      { k:'dasar', l:'Dasar judgment', t:'area' }, { k:'ket', l:'Keterangan', t:'area' } ],
+    empty: () => ({ line:'', jam:now(), jenis:'', hasil:'OK', dasar:'', ket:'' }) },
+  delivery: { title: '3. Delivery', add: 'Tambah temuan delivery',
+    fields: [
+      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
+      { k:'temuan', l:'Temuan masalah', t:'area' }, { k:'tindakan', l:'Tindakan langsung', t:'area' },
+      { k:'status', l:'Status', t:'seg', o:['OK','NG'] } ],
+    empty: () => ({ line:'', jam:now(), temuan:'', tindakan:'', status:'OK' }) },
+  control: { title: '4. Control New Size / Trial / Lain-lain', add: 'Tambah catatan',
+    fields: [ { k:'ket', l:'Keterangan', t:'area' } ],
+    empty: () => ({ ket:'' }) }
+};
+
+let S = load();
+
+function blank() {
+  return { reportId:'', tanggal: today(), shift: localStorage.getItem('qc_shift') || '', qc: localStorage.getItem('qc_name') || '',
+           abnormal:[], judgment:[], delivery:[], control:[] };
+}
+function load() {
+  try { const d = JSON.parse(localStorage.getItem('qc_draft')); if (d && d.tanggal) return d; } catch(e) {}
+  return blank();
+}
+function persist() {
+  localStorage.setItem('qc_draft', JSON.stringify(S));
+  if (S.qc) localStorage.setItem('qc_name', S.qc);
+  if (S.shift) localStorage.setItem('qc_shift', S.shift);
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const opts = (arr, sel, ph) => '<option value="">' + ph + '</option>' + arr.map(v => `<option${v===sel?' selected':''}>${esc(v)}</option>`).join('');
+
+function fieldHTML(sec, i, f, row) {
+  const id = `${sec}-${i}-${f.k}`;
+  if (f.t === 'seg')
+    return `<label>${f.l}</label><div class="seg">${f.o.map(o => `<button type="button" class="${o}${row[f.k]===o?' on':''}" data-seg="${sec}|${i}|${f.k}|${o}">${o}</button>`).join('')}</div>`;
+  if (f.t === 'line')
+    return `<div><label for="${id}">${f.l}</label><select id="${id}" data-f="${sec}|${i}|${f.k}">${opts(lists.line, row[f.k], 'Pilih')}</select></div>`;
+  if (f.t === 'time')
+    return `<div><label for="${id}">${f.l}</label><input id="${id}" type="time" value="${esc(row[f.k])}" data-f="${sec}|${i}|${f.k}"></div>`;
+  return `<label for="${id}">${f.l}</label><textarea id="${id}" rows="2" data-f="${sec}|${i}|${f.k}">${esc(row[f.k])}</textarea>`;
+}
+
+function render() {
+  let h = `
+  <div class="card"><div class="body">
+    <div class="grid3">
+      <div><label for="tgl">Tanggal</label><input id="tgl" type="date" value="${esc(S.tanggal)}"></div>
+      <div><label for="shf">Shift</label><select id="shf">${opts(lists.shift, S.shift, 'Pilih')}</select></div>
+      <div><label for="qc">Nama QC</label>${lists.qc.length
+        ? `<select id="qc">${opts(lists.qc, S.qc, 'Pilih')}</select>`
+        : `<input id="qc" value="${esc(S.qc)}" placeholder="Nama">`}</div>
+    </div>
+  </div></div>`;
+
+  if (openItems.length) {
+    const shown = openItems.filter(o => !S.abnormal.some(r => r.parentId === o.itemId));
+    if (shown.length) h += `<div class="card carry"><h2>Abnormal masih Open <span class="badge">${shown.length}</span></h2><div class="body">` +
+      shown.map(o => `<div class="item"><b>${esc(o.line)}</b> · ${esc(o.tanggal)} ${esc(o.shift)} ${esc(o.jam)}<br>${esc(o.problem)}<br><button type="button" data-carry="${esc(o.itemId)}">Lanjutkan di laporan ini</button></div>`).join('') +
+      `</div></div>`;
+  }
+
+  for (const [sec, def] of Object.entries(SECTIONS)) {
+    const rows = S[sec];
+    h += `<div class="card"><h2>${def.title}<span class="badge${rows.length?'':' zero'}">${rows.length}</span></h2><div class="body">`;
+    if (!rows.length) h += `<p class="none">Tidak ada temuan.</p>`;
+    rows.forEach((row, i) => {
+      const lj = def.fields.filter(f => f.t === 'line' || f.t === 'time');
+      const rest = def.fields.filter(f => f.t !== 'line' && f.t !== 'time');
+      h += `<div class="row"><div class="row-head"><span>#${i+1}${row.parentId ? ' · lanjutan' : ''}</span><button class="del" type="button" data-del="${sec}|${i}">Hapus</button></div>`;
+      if (lj.length) h += `<div class="grid2">${lj.map(f => fieldHTML(sec, i, f, row)).join('')}</div>`;
+      h += rest.map(f => fieldHTML(sec, i, f, row)).join('') + `</div>`;
+    });
+    h += `<button class="add" type="button" data-add="${sec}">+ ${def.add}</button></div></div>`;
+  }
+  document.getElementById('app').innerHTML = h;
+}
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'tgl') S.tanggal = t.value;
+  else if (t.id === 'shf') S.shift = t.value;
+  else if (t.id === 'qc') S.qc = t.value;
+  else if (t.dataset.f) { const [sec,i,k] = t.dataset.f.split('|'); S[sec][+i][k] = t.value; }
+  persist();
+});
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.add) { S[b.dataset.add].push(SECTIONS[b.dataset.add].empty()); persist(); render(); }
+  else if (b.dataset.del) { const [sec,i] = b.dataset.del.split('|'); S[sec].splice(+i,1); persist(); render(); }
+  else if (b.dataset.seg) { const [sec,i,k,v] = b.dataset.seg.split('|'); S[sec][+i][k] = v; persist(); render(); }
+  else if (b.dataset.carry) {
+    const o = openItems.find(x => x.itemId === b.dataset.carry);
+    S.abnormal.push({ line:o.line, jam:now(), problem:o.problem, rootcause:o.rootcause, action:o.action, status:'Open', parentId:o.itemId });
+    persist(); render();
+  }
+});
+
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 3200);
+}
+
+function cleaned() {
+  const out = { ...S };
+  for (const [sec, def] of Object.entries(SECTIONS)) {
+    const textKeys = def.fields.filter(f => f.t === 'area').map(f => f.k);
+    out[sec] = S[sec].filter(r => textKeys.some(k => (r[k] || '').trim()));
+  }
+  return out;
+}
+
+function validate(d) {
+  if (!d.tanggal || !d.shift || !(d.qc || '').trim()) return 'Lengkapi Tanggal, Shift, dan Nama QC.';
+  for (const sec of ['abnormal','judgment','delivery']) {
+    if (d[sec].some(r => !r.line)) return `Pilih Line pada ${SECTIONS[sec].title}.`;
+  }
+  return '';
+}
+
+function report(d) {
+  const L = [];
+  L.push('*DAILY QC LINE REPORT*');
+  L.push(`Tanggal : ${d.tanggal}`, `Shift : ${d.shift}`, `Nama QC : ${d.qc}`, '');
+  const block = (sec, fn) => {
+    L.push(`*${SECTIONS[sec].title}*`);
+    if (!d[sec].length) L.push('- Tidak ada');
+    d[sec].forEach((r, i) => L.push(...fn(r, i + 1)));
+    L.push('');
+  };
+  block('abnormal', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Problem: ${r.problem || '-'}`, `Root cause: ${r.rootcause || '-'}`, `Corrective action: ${r.action || '-'}`, `Status: ${r.status}`]);
+  block('judgment', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Jenis masalah: ${r.jenis || '-'}`, `Hasil: ${r.hasil}`, `Dasar: ${r.dasar || '-'}`, `Ket: ${r.ket || '-'}`]);
+  block('delivery', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Temuan: ${r.temuan || '-'}`, `Tindakan: ${r.tindakan || '-'}`, `Status: ${r.status}`]);
+  block('control', (r, n) => [`${n}. ${r.ket}`]);
+  return L.join('\n').trim();
+}
+
+async function save() {
+  const d = cleaned(); const err = validate(d);
+  if (err) { toast(err, true); return false; }
+  if (!API_URL) { toast('Belum terhubung ke Google Sheets (API_URL kosong).', true); return false; }
+  const btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try {
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(d) });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error);
+    S.reportId = j.reportId; persist(); toast('Tersimpan.'); return true;
+  } catch (e) { toast('Gagal menyimpan: ' + e.message, true); return false; }
+  finally { btn.disabled = false; btn.textContent = 'Simpan'; }
+}
+
+document.getElementById('save').onclick = save;
+document.getElementById('wag').onclick = async () => {
+  const d = cleaned(); const err = validate(d);
+  if (err) return toast(err, true);
+  if (API_URL && !(await save())) return;
+  window.open('https://wa.me/?text=' + encodeURIComponent(report(d)), '_blank');
+};
+document.getElementById('copy').onclick = async () => {
+  const d = cleaned(); const err = validate(d);
+  if (err) return toast(err, true);
+  try { await navigator.clipboard.writeText(report(d)); toast('Teks laporan disalin.'); }
+  catch (e) { toast('Gagal menyalin.', true); }
+};
+document.getElementById('new').onclick = () => {
+  if (!confirm('Mulai laporan baru? Isian saat ini akan dihapus dari layar (data yang sudah disimpan tetap aman di Sheets).')) return;
+  S = blank(); persist(); render();
+};
+
+async function init() {
+  if (!API_URL) {
+    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG dan Salin tetap bisa dicoba.</div>';
+  } else {
+    try {
+      const j = await (await fetch(API_URL)).json();
+      if (j.ok) { lists = { line: j.line.length ? j.line : DEFAULT_LISTS.line, qc: j.qc, shift: j.shift.length ? j.shift : DEFAULT_LISTS.shift }; openItems = j.open || []; }
+    } catch (e) { toast('Daftar Line gagal dimuat, memakai bawaan.', true); }
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
