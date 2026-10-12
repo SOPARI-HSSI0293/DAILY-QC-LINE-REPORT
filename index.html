@@ -62,6 +62,21 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;max-width:90%;display:none;text-align:center;z-index:9}
 .toast.err{background:var(--red)}
 
+/* login */
+body.locked .wrap,body.locked .head-act{display:none}
+#login{display:none;position:fixed;inset:0;background:var(--paper);z-index:20;align-items:center;justify-content:center;padding:16px}
+body.locked #login{display:flex}
+.lcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;width:100%;max-width:360px}
+.lcard h2{margin:0 0 4px;font-size:20px}
+.lcard p{margin:0 0 8px;color:var(--muted);font-size:14px}
+.lcard button{width:100%;margin-top:14px;padding:12px;border:0;border-radius:9px;background:var(--green);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.lcard button:disabled{opacity:.6}
+.lerr{color:var(--red);font-size:14px;margin-top:8px;min-height:18px}
+.head-act{display:flex;gap:8px;align-items:center}
+#who{font-size:14px;opacity:.9}
+#logout{border:1px solid rgba(255,255,255,.6);background:none;color:#fff;font:inherit;font-size:14px;padding:6px 12px;border-radius:7px;cursor:pointer}
+#logout:hover{background:rgba(255,255,255,.12)}
+
 /* daftar laporan terbaru */
 .recent{margin-top:12px;margin-bottom:0}
 .recent summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:600;font-size:16px;background:#dfe5dc;display:flex;justify-content:space-between;align-items:center}
@@ -98,11 +113,11 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 }
 </style>
 </head>
-<body>
+<body class="locked">
 <header>
   <div class="head-in">
     <div><h1>Daily QC Line Report</h1><p>HSSI</p></div>
-    <button id="new" type="button">Laporan baru</button>
+    <div class="head-act"><span id="who"></span><button id="new" type="button">Laporan baru</button><button id="logout" type="button">Keluar</button></div>
   </div>
 </header>
 <div class="wrap">
@@ -120,6 +135,14 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <div id="sections"></div>
   </div>
 </div>
+<div id="login"><div class="lcard">
+  <h2>Masuk</h2>
+  <p>Pilih nama Anda dan masukkan passcode.</p>
+  <label for="lname">Nama QC</label><select id="lname"></select>
+  <label for="lpass">Passcode</label><input id="lpass" type="password" autocomplete="off">
+  <div id="lerr" class="lerr"></div>
+  <button id="lbtn" type="button">Masuk</button>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -130,6 +153,7 @@ const DEFAULT_LISTS = { line: ['Line 1','Line 2','Line 3'], qc: [], qcs: [], shi
 let lists = { ...DEFAULT_LISTS };
 let openItems = [];
 let recent = [];
+let AUTH = null;   // {qc, pass} setelah login
 
 // ReportID: R-<tanggal>-<no shift>-<kode QC>, contoh R-20261012-1-ATF
 function shiftNo(s) {
@@ -176,18 +200,19 @@ const SECTIONS = {
     empty: () => ({ ket:'' }) }
 };
 
-let S = load();
+let S = blank();
 
+const draftKey = () => 'qc_draft_' + (AUTH ? AUTH.qc : '');
 function blank() {
-  return { reportId:'', tanggal: today(), shift: localStorage.getItem('qc_shift') || '', qc: localStorage.getItem('qc_name') || '',
+  return { reportId:'', tanggal: today(), shift: localStorage.getItem('qc_shift') || '', qc: AUTH ? AUTH.qc : (localStorage.getItem('qc_name') || ''),
            abnormal:[], judgment:[], delivery:[], control:[] };
 }
 function load() {
-  try { const d = JSON.parse(localStorage.getItem('qc_draft')); if (d && d.tanggal) return d; } catch(e) {}
+  try { const d = JSON.parse(localStorage.getItem(draftKey())); if (d && d.tanggal) { if (AUTH) d.qc = AUTH.qc; return d; } } catch(e) {}
   return blank();
 }
 function persist() {
-  localStorage.setItem('qc_draft', JSON.stringify(S));
+  localStorage.setItem(draftKey(), JSON.stringify(S));
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -212,9 +237,7 @@ function render() {
   <div class="card"><div class="body"><div class="meta">
     <div><label for="tgl">Tanggal</label><input id="tgl" type="date" value="${esc(S.tanggal)}"></div>
     <div><label for="shf">Shift</label><select id="shf">${opts(lists.shift, S.shift, 'Pilih')}</select></div>
-    <div><label for="qc">Nama QC</label>${lists.qc.length
-      ? `<select id="qc">${opts(lists.qc, S.qc, 'Pilih')}</select>`
-      : `<input id="qc" value="${esc(S.qc)}" placeholder="Nama">`}</div>
+    <div><label for="qc">Nama QC</label><input id="qc" value="${esc(S.qc)}" placeholder="Nama"${AUTH ? ' disabled' : ''}></div>
   </div></div></div>`;
 
   let c = '';
@@ -289,7 +312,7 @@ document.addEventListener('click', e => {
 
 function renderRecent() {
   const el = document.getElementById('recent');
-  if (!API_URL) { el.innerHTML = ''; return; }
+  if (!API_URL || !AUTH) { el.innerHTML = ''; return; }
   const was = el.querySelector('details');
   const open = was ? was.open : window.matchMedia('(min-width:1000px)').matches;
   el.innerHTML = `<details class="card recent"${open ? ' open' : ''}><summary>Laporan terbaru <span class="badge${recent.length ? '' : ' zero'}">${recent.length}</span></summary><div class="rlist">` +
@@ -300,10 +323,10 @@ function renderRecent() {
 }
 
 async function refreshRecent() {
-  if (!API_URL) return;
+  if (!API_URL || !AUTH) return;
   try {
-    const j = await (await fetch(API_URL + '?action=recent')).json();
-    if (j.ok) { recent = j.list; renderRecent(); }
+    const j = await api('recent');
+    recent = j.list; renderRecent();
   } catch (e) {}
 }
 
@@ -312,8 +335,7 @@ async function loadReport(id) {
   const hasContent = ['abnormal','judgment','delivery','control'].some(sec => c[sec].length);
   if (id !== S.reportId && hasContent && !confirm('Tampilkan laporan ' + id + '? Isian di layar yang belum disimpan akan diganti.')) return;
   try {
-    const j = await (await fetch(API_URL + '?action=report&id=' + encodeURIComponent(id))).json();
-    if (!j.ok) throw new Error(j.error);
+    const j = await api('report', { id });
     const d = j.data;
     S = { reportId: id, tanggal: d.tanggal, shift: d.shift, qc: d.qc,
           abnormal: d.abnormal, judgment: d.judgment, delivery: d.delivery, control: d.control };
@@ -373,9 +395,7 @@ async function save() {
   d.reportId = makeId(d);
   const btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Menyimpan...';
   try {
-    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(d) });
-    const j = await res.json();
-    if (!j.ok) throw new Error(j.error);
+    const j = await api('save', d);
     S.reportId = j.reportId; persist(); toast('Tersimpan: ' + j.reportId);
     refreshRecent();
     return true;
@@ -402,22 +422,82 @@ document.getElementById('new').onclick = () => {
   S = blank(); persist(); render(); renderRecent();
 };
 
+async function api(action, extra = {}) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, qc: AUTH.qc, pass: AUTH.pass, ...extra }) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error);
+  return j;
+}
+
+function fillLogin() {
+  const sel = document.getElementById('lname');
+  sel.innerHTML = lists.qc.map(n => `<option>${esc(n)}</option>`).join('');
+  const last = localStorage.getItem('qc_last');
+  if (last && lists.qc.includes(last)) sel.value = last;
+}
+
+function showApp() {
+  document.body.classList.remove('locked');
+  document.getElementById('who').textContent = AUTH ? AUTH.qc : '';
+  document.getElementById('logout').style.display = AUTH ? '' : 'none';
+}
+
+async function enter(qc, pass, silent) {
+  AUTH = { qc, pass };
+  try {
+    const j = await api('login');
+    openItems = j.open || [];
+    recent = j.recent || [];
+    sessionStorage.setItem('qc_auth', JSON.stringify(AUTH));
+    localStorage.setItem('qc_last', qc);
+    S = load();
+    showApp(); render(); renderRecent();
+    return true;
+  } catch (e) {
+    AUTH = null;
+    sessionStorage.removeItem('qc_auth');
+    if (!silent) document.getElementById('lerr').textContent = e.message;
+    return false;
+  }
+}
+
+document.getElementById('lbtn').onclick = async () => {
+  const qc = document.getElementById('lname').value;
+  const pass = document.getElementById('lpass').value;
+  const err = document.getElementById('lerr'); err.textContent = '';
+  if (!qc || !pass) { err.textContent = 'Pilih nama dan isi passcode.'; return; }
+  const b = document.getElementById('lbtn'); b.disabled = true; b.textContent = 'Memeriksa...';
+  await enter(qc, pass);
+  b.disabled = false; b.textContent = 'Masuk';
+  document.getElementById('lpass').value = '';
+};
+document.getElementById('lpass').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('lbtn').click(); });
+
+document.getElementById('logout').onclick = () => {
+  persist();                                   // draf tetap tersimpan atas nama member ini
+  AUTH = null; sessionStorage.removeItem('qc_auth');
+  S = blank(); openItems = []; recent = [];
+  document.getElementById('recent').innerHTML = '';
+  fillLogin();
+  document.body.classList.add('locked');
+};
+
 async function init() {
   if (!API_URL) {
-    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG tetap bisa dicoba.</div>';
-  } else {
-    try {
-      const j = await (await fetch(API_URL)).json();
-      if (j.ok) {
-        const qcs = j.qcs || [];
-        lists = { line: j.line.length ? j.line : DEFAULT_LISTS.line, qcs, qc: qcs.map(q => q.nama), shift: j.shift.length ? j.shift : DEFAULT_LISTS.shift };
-        openItems = j.open || [];
-        recent = j.recent || [];
-      }
-    } catch (e) { toast('Daftar Line gagal dimuat, memakai bawaan.', true); }
+    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets, login dilewati. Tombol Kirim ke WAG tetap bisa dicoba.</div>';
+    document.body.classList.remove('locked');
+    showApp(); render(); renderRecent();
+    return;
   }
-  render();
-  renderRecent();
+  try {
+    const j = await (await fetch(API_URL)).json();
+    if (!j.ok) throw new Error(j.error);
+    const qcs = j.qcs || [];
+    lists = { line: j.line.length ? j.line : DEFAULT_LISTS.line, qcs, qc: qcs.map(q => q.nama), shift: j.shift.length ? j.shift : DEFAULT_LISTS.shift };
+  } catch (e) { document.getElementById('lerr').textContent = 'Daftar member gagal dimuat: ' + e.message; }
+  fillLogin();
+  const saved = sessionStorage.getItem('qc_auth');
+  if (saved) { try { const a = JSON.parse(saved); await enter(a.qc, a.pass, true); } catch (e) {} }
 }
 init();
 </script>
