@@ -160,10 +160,11 @@ const SECTIONS = {
   judgment: { title: '2. Judgment Proses', add: 'Tambah judgment',
     fields: [
       { k:'line', l:'Line', t:'line', w:3 }, { k:'jam', l:'Jam', t:'time', w:2 },
-      { k:'hasil', l:'Hasil judgment', t:'seg', o:['OK','NG','Hold'], w:4 },
+      { k:'hasilj', l:'Hasil judgment', t:'seg', o:['OK','NG','Hold'], w:4 },
       { k:'jenis', l:'Jenis masalah', t:'area', w:4 },
-      { k:'dasar', l:'Dasar judgment', t:'area', w:4 }, { k:'ket', l:'Keterangan', t:'area', w:4 } ],
-    empty: () => ({ line:'', jam:now(), jenis:'', hasil:'OK', dasar:'', ket:'' }) },
+      { k:'judg', l:'Judgment', t:'area', w:4 }, { k:'dasar', l:'Dasar judgment', t:'area', w:4 },
+      { k:'ket', l:'Keterangan', t:'area', w:12 } ],
+    empty: () => ({ line:'', jam:now(), jenis:'', judg:'', dasar:'', hasilj:'OK', ket:'' }) },
   delivery: { title: '3. Delivery', add: 'Tambah temuan delivery',
     fields: [
       { k:'line', l:'Line', t:'line', w:3 }, { k:'jam', l:'Jam', t:'time', w:2 },
@@ -359,7 +360,7 @@ function report(d) {
     L.push('');
   };
   block('abnormal', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Problem: ${r.problem || '-'}`, `Root cause: ${r.rootcause || '-'}`, `Corrective action: ${r.action || '-'}`, `Status: ${r.status}`]);
-  block('judgment', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Jenis masalah: ${r.jenis || '-'}`, `Hasil: ${r.hasil}`, `Dasar: ${r.dasar || '-'}`, `Ket: ${r.ket || '-'}`]);
+  block('judgment', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Jenis masalah: ${r.jenis || '-'}`, `Judgment: ${r.judg || '-'}`, `Dasar: ${r.dasar || '-'}`, `Hasil: ${r.hasilj || '-'}`, `Ket: ${r.ket || '-'}`]);
   block('delivery', (r, n) => [`${n}. ${r.line} | ${r.jam}`, `Temuan: ${r.temuan || '-'}`, `Tindakan: ${r.tindakan || '-'}`, `Status: ${r.status}`]);
   block('control', (r, n) => [`${n}. ${r.ket}`]);
   return L.join('\n').trim();
