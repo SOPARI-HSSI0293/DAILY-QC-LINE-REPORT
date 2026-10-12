@@ -11,10 +11,14 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
-header{background:var(--green);color:#fff;padding:14px 16px}
+header{background:var(--green);color:#fff;padding:12px 16px}
+.head-in{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
 header h1{margin:0;font-size:19px;letter-spacing:.2px}
 header p{margin:2px 0 0;font-size:13px;opacity:.85}
-main{max-width:720px;margin:0 auto;padding:12px}
+#new{border:1px solid rgba(255,255,255,.6);background:none;color:#fff;font:inherit;font-size:14px;padding:6px 12px;border-radius:7px;cursor:pointer}
+#new:hover{background:rgba(255,255,255,.12)}
+.wrap{max-width:1400px;margin:0 auto;padding:12px}
+.layout{display:grid;grid-template-columns:1fr;gap:12px}
 .banner{background:#fff4d6;border:1px solid #e6c667;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
 .card>h2{margin:0;padding:10px 14px;font-size:16px;background:#dfe5dc;display:flex;justify-content:space-between;align-items:center}
@@ -23,50 +27,85 @@ main{max-width:720px;margin:0 auto;padding:12px}
 .body{padding:12px 14px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
 input,select,textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid #b9c0b7;border-radius:7px;background:#fff;color:var(--ink)}
-textarea{resize:vertical;min-height:44px}
+textarea{resize:vertical;min-height:44px;overflow:hidden}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.meta label{margin-top:0}
+
+/* baris temuan */
 .row{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;padding:4px 12px 12px;margin-bottom:10px;background:#fafbf9}
 .row-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding-top:8px}
+.fields{display:grid;grid-template-columns:repeat(12,1fr);column-gap:10px}
+.f{grid-column:span 12}
+.f-line,.f-time{grid-column:span 6}
+.f-seg{order:9}
 .seg{display:flex;gap:6px}
-.seg button{flex:1;padding:9px 6px;border:1px solid #b9c0b7;background:#fff;border-radius:7px;font:inherit;font-weight:600;color:var(--muted)}
+.seg button{flex:1;padding:9px 6px;border:1px solid #b9c0b7;background:#fff;border-radius:7px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
 .seg button.on.Open,.seg button.on.Hold{background:var(--amber);border-color:var(--amber);color:#fff}
 .seg button.on.Closed,.seg button.on.OK{background:var(--green);border-color:var(--green);color:#fff}
 .seg button.on.NG{background:var(--red);border-color:var(--red);color:#fff}
-.add{width:100%;padding:10px;border:1.5px dashed var(--green);background:#fff;color:var(--green-d);font:inherit;font-weight:600;border-radius:8px}
-.del{border:0;background:none;color:var(--red);font:inherit;font-size:13px;padding:4px 0}
+.add{width:100%;padding:10px;border:1.5px dashed var(--green);background:#fff;color:var(--green-d);font:inherit;font-weight:600;border-radius:8px;cursor:pointer}
+.add:hover{background:#f1f8f3}
+.del{border:0;background:none;color:var(--red);font:inherit;font-size:13px;padding:4px 0;cursor:pointer}
 .none{color:var(--muted);font-size:14px;margin:0 0 10px}
 .carry{background:#fff4d6;border-color:#e6c667}
 .carry .item{padding:8px 0;border-top:1px solid #ecd9a0;font-size:14px}
 .carry .item:first-of-type{border-top:0}
-.carry button{margin-top:6px;padding:6px 12px;border:1px solid var(--amber);background:#fff;color:var(--amber);border-radius:7px;font:inherit;font-weight:600}
-.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
-.bar button{flex:1;max-width:240px;padding:12px;border-radius:9px;border:0;font:inherit;font-weight:700}
+.carry button{margin-top:6px;padding:6px 12px;border:1px solid var(--amber);background:#fff;color:var(--amber);border-radius:7px;font:inherit;font-weight:600;cursor:pointer}
+
+/* tombol aksi */
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;z-index:5}
+.bar button{flex:1;max-width:240px;padding:12px;border-radius:9px;border:0;font:inherit;font-weight:700;cursor:pointer}
 #save{background:var(--green);color:#fff}
 #wag{background:#25d366;color:#08331a}
 #copy{flex:0 0 auto;background:#e6e9e4;color:var(--ink)}
 .bar button:disabled{opacity:.55}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;max-width:90%;display:none;text-align:center}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;max-width:90%;display:none;text-align:center;z-index:9}
 .toast.err{background:var(--red)}
-.top-actions{display:flex;justify-content:flex-end;margin-bottom:8px}
-.top-actions button{border:0;background:none;color:var(--muted);text-decoration:underline;font:inherit;font-size:13px}
+
+/* layar lebar (PC / laptop) */
+@media (min-width:700px){
+  .f{grid-column:span var(--w,12)}
+  .f-seg{order:0}
+}
+@media (min-width:1000px){
+  body{padding-bottom:24px}
+  .layout{grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+  aside{position:sticky;top:12px}
+  .meta{grid-template-columns:1fr}
+  .meta label{margin-top:10px}
+  .meta>div:first-child label{margin-top:0}
+  .bar{position:static;flex-direction:column;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .bar button{max-width:none;width:100%;flex:none}
+  .toast{bottom:24px}
+}
+@media (min-width:1500px){
+  .wrap,.head-in{max-width:1600px}
+  .layout{grid-template-columns:320px minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Daily QC Line Report</h1>
-  <p>HSSI</p>
+  <div class="head-in">
+    <div><h1>Daily QC Line Report</h1><p>HSSI</p></div>
+    <button id="new" type="button">Laporan baru</button>
+  </div>
 </header>
-<main>
+<div class="wrap">
   <div id="banner"></div>
-  <div class="top-actions"><button id="new" type="button">Laporan baru</button></div>
-  <div id="app"></div>
-</main>
-<div class="bar">
-  <button id="save" type="button">Simpan</button>
-  <button id="wag" type="button">Kirim ke WAG</button>
-  <button id="copy" type="button">Salin</button>
+  <div class="layout">
+    <aside>
+      <div id="meta"></div>
+      <div id="carry"></div>
+      <div class="bar">
+        <button id="save" type="button">Simpan</button>
+        <button id="wag" type="button">Kirim ke WAG</button>
+        <button id="copy" type="button">Salin teks</button>
+      </div>
+    </aside>
+    <div id="sections"></div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -81,29 +120,30 @@ let openItems = [];
 const now = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 
+// w = lebar kolom (dari 12) pada layar lebar
 const SECTIONS = {
   abnormal: { title: '1. Abnormal Proses', add: 'Tambah abnormal',
     fields: [
-      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
-      { k:'problem', l:'Problem detail', t:'area' }, { k:'rootcause', l:'Root cause', t:'area' },
-      { k:'action', l:'Corrective action', t:'area' },
-      { k:'status', l:'Status', t:'seg', o:['Open','Closed'] } ],
+      { k:'line', l:'Line', t:'line', w:3 }, { k:'jam', l:'Jam', t:'time', w:2 },
+      { k:'status', l:'Status', t:'seg', o:['Open','Closed'], w:4 },
+      { k:'problem', l:'Problem detail', t:'area', w:4 }, { k:'rootcause', l:'Root cause', t:'area', w:4 },
+      { k:'action', l:'Corrective action', t:'area', w:4 } ],
     empty: () => ({ line:'', jam:now(), problem:'', rootcause:'', action:'', status:'Open', parentId:'' }) },
   judgment: { title: '2. Judgment Proses', add: 'Tambah judgment',
     fields: [
-      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
-      { k:'jenis', l:'Jenis masalah', t:'area' },
-      { k:'hasil', l:'Hasil judgment', t:'seg', o:['OK','NG','Hold'] },
-      { k:'dasar', l:'Dasar judgment', t:'area' }, { k:'ket', l:'Keterangan', t:'area' } ],
+      { k:'line', l:'Line', t:'line', w:3 }, { k:'jam', l:'Jam', t:'time', w:2 },
+      { k:'hasil', l:'Hasil judgment', t:'seg', o:['OK','NG','Hold'], w:4 },
+      { k:'jenis', l:'Jenis masalah', t:'area', w:4 },
+      { k:'dasar', l:'Dasar judgment', t:'area', w:4 }, { k:'ket', l:'Keterangan', t:'area', w:4 } ],
     empty: () => ({ line:'', jam:now(), jenis:'', hasil:'OK', dasar:'', ket:'' }) },
   delivery: { title: '3. Delivery', add: 'Tambah temuan delivery',
     fields: [
-      { k:'line', l:'Line', t:'line' }, { k:'jam', l:'Jam', t:'time' },
-      { k:'temuan', l:'Temuan masalah', t:'area' }, { k:'tindakan', l:'Tindakan langsung', t:'area' },
-      { k:'status', l:'Status', t:'seg', o:['OK','NG'] } ],
+      { k:'line', l:'Line', t:'line', w:3 }, { k:'jam', l:'Jam', t:'time', w:2 },
+      { k:'status', l:'Status', t:'seg', o:['OK','NG'], w:4 },
+      { k:'temuan', l:'Temuan masalah', t:'area', w:6 }, { k:'tindakan', l:'Tindakan langsung', t:'area', w:6 } ],
     empty: () => ({ line:'', jam:now(), temuan:'', tindakan:'', status:'OK' }) },
   control: { title: '4. Control New Size / Trial / Lain-lain', add: 'Tambah catatan',
-    fields: [ { k:'ket', l:'Keterangan', t:'area' } ],
+    fields: [ { k:'ket', l:'Keterangan', t:'area', w:12 } ],
     empty: () => ({ ket:'' }) }
 };
 
@@ -128,52 +168,77 @@ const opts = (arr, sel, ph) => '<option value="">' + ph + '</option>' + arr.map(
 
 function fieldHTML(sec, i, f, row) {
   const id = `${sec}-${i}-${f.k}`;
+  const wrap = inner => `<div class="f f-${f.t}" style="--w:${f.w || 12}">${inner}</div>`;
   if (f.t === 'seg')
-    return `<label>${f.l}</label><div class="seg">${f.o.map(o => `<button type="button" class="${o}${row[f.k]===o?' on':''}" data-seg="${sec}|${i}|${f.k}|${o}">${o}</button>`).join('')}</div>`;
+    return wrap(`<label>${f.l}</label><div class="seg">${f.o.map(o => `<button type="button" class="${o}${row[f.k]===o?' on':''}" data-seg="${sec}|${i}|${f.k}|${o}">${o}</button>`).join('')}</div>`);
   if (f.t === 'line')
-    return `<div><label for="${id}">${f.l}</label><select id="${id}" data-f="${sec}|${i}|${f.k}">${opts(lists.line, row[f.k], 'Pilih')}</select></div>`;
+    return wrap(`<label for="${id}">${f.l}</label><select id="${id}" data-f="${sec}|${i}|${f.k}">${opts(lists.line, row[f.k], 'Pilih')}</select>`);
   if (f.t === 'time')
-    return `<div><label for="${id}">${f.l}</label><input id="${id}" type="time" value="${esc(row[f.k])}" data-f="${sec}|${i}|${f.k}"></div>`;
-  return `<label for="${id}">${f.l}</label><textarea id="${id}" rows="2" data-f="${sec}|${i}|${f.k}">${esc(row[f.k])}</textarea>`;
+    return wrap(`<label for="${id}">${f.l} (24 jam)</label><input id="${id}" type="text" inputmode="numeric" maxlength="5" placeholder="08:30" autocomplete="off" value="${esc(row[f.k])}" data-f="${sec}|${i}|${f.k}" data-time="1">`);
+  return wrap(`<label for="${id}">${f.l}</label><textarea id="${id}" rows="2" data-f="${sec}|${i}|${f.k}">${esc(row[f.k])}</textarea>`);
 }
 
+function grow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; }
+
 function render() {
-  let h = `
-  <div class="card"><div class="body">
-    <div class="grid3">
-      <div><label for="tgl">Tanggal</label><input id="tgl" type="date" value="${esc(S.tanggal)}"></div>
-      <div><label for="shf">Shift</label><select id="shf">${opts(lists.shift, S.shift, 'Pilih')}</select></div>
-      <div><label for="qc">Nama QC</label>${lists.qc.length
-        ? `<select id="qc">${opts(lists.qc, S.qc, 'Pilih')}</select>`
-        : `<input id="qc" value="${esc(S.qc)}" placeholder="Nama">`}</div>
-    </div>
-  </div></div>`;
+  document.getElementById('meta').innerHTML = `
+  <div class="card"><div class="body"><div class="meta">
+    <div><label for="tgl">Tanggal</label><input id="tgl" type="date" value="${esc(S.tanggal)}"></div>
+    <div><label for="shf">Shift</label><select id="shf">${opts(lists.shift, S.shift, 'Pilih')}</select></div>
+    <div><label for="qc">Nama QC</label>${lists.qc.length
+      ? `<select id="qc">${opts(lists.qc, S.qc, 'Pilih')}</select>`
+      : `<input id="qc" value="${esc(S.qc)}" placeholder="Nama">`}</div>
+  </div></div></div>`;
 
-  if (openItems.length) {
-    const shown = openItems.filter(o => !S.abnormal.some(r => r.parentId === o.itemId));
-    if (shown.length) h += `<div class="card carry"><h2>Abnormal masih Open <span class="badge">${shown.length}</span></h2><div class="body">` +
-      shown.map(o => `<div class="item"><b>${esc(o.line)}</b> · ${esc(o.tanggal)} ${esc(o.shift)} ${esc(o.jam)}<br>${esc(o.problem)}<br><button type="button" data-carry="${esc(o.itemId)}">Lanjutkan di laporan ini</button></div>`).join('') +
-      `</div></div>`;
-  }
+  let c = '';
+  const shown = openItems.filter(o => !S.abnormal.some(r => r.parentId === o.itemId));
+  if (shown.length) c += `<div class="card carry"><h2>Abnormal masih Open <span class="badge">${shown.length}</span></h2><div class="body">` +
+    shown.map(o => `<div class="item"><b>${esc(o.line)}</b> · ${esc(o.tanggal)} ${esc(o.shift)} ${esc(o.jam)}<br>${esc(o.problem)}<br><button type="button" data-carry="${esc(o.itemId)}">Lanjutkan di laporan ini</button></div>`).join('') +
+    `</div></div>`;
+  document.getElementById('carry').innerHTML = c;
 
+  let h = '';
   for (const [sec, def] of Object.entries(SECTIONS)) {
     const rows = S[sec];
     h += `<div class="card"><h2>${def.title}<span class="badge${rows.length?'':' zero'}">${rows.length}</span></h2><div class="body">`;
     if (!rows.length) h += `<p class="none">Tidak ada temuan.</p>`;
     rows.forEach((row, i) => {
-      const lj = def.fields.filter(f => f.t === 'line' || f.t === 'time');
-      const rest = def.fields.filter(f => f.t !== 'line' && f.t !== 'time');
       h += `<div class="row"><div class="row-head"><span>#${i+1}${row.parentId ? ' · lanjutan' : ''}</span><button class="del" type="button" data-del="${sec}|${i}">Hapus</button></div>`;
-      if (lj.length) h += `<div class="grid2">${lj.map(f => fieldHTML(sec, i, f, row)).join('')}</div>`;
-      h += rest.map(f => fieldHTML(sec, i, f, row)).join('') + `</div>`;
+      h += `<div class="fields">${def.fields.map(f => fieldHTML(sec, i, f, row)).join('')}</div></div>`;
     });
     h += `<button class="add" type="button" data-add="${sec}">+ ${def.add}</button></div></div>`;
   }
-  document.getElementById('app').innerHTML = h;
+  const box = document.getElementById('sections');
+  box.innerHTML = h;
+  box.querySelectorAll('textarea').forEach(grow);
 }
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function normTime(v) {
+  v = (v || '').trim();
+  const m = v.match(/^(\d{1,2})[:.]?(\d{2})$/);
+  return m ? m[1].padStart(2, '0') + ':' + m[2] : v;
+}
+
+document.addEventListener('focusout', e => {
+  const t = e.target;
+  if (!t.dataset || !t.dataset.time) return;
+  const v = normTime(t.value);
+  t.value = v;
+  const [sec, i, k] = t.dataset.f.split('|');
+  S[sec][+i][k] = v;
+  persist();
+  if (v && !TIME_RE.test(v)) toast('Format jam 24 jam, contoh 08:30 atau 14:05.', true);
+});
 
 document.addEventListener('input', e => {
   const t = e.target;
+  if (t.dataset && t.dataset.time) {
+    let v = t.value.replace(/[^\d:]/g, '');
+    if (/^\d{2}$/.test(v) && e.inputType !== 'deleteContentBackward') v += ':';
+    t.value = v;
+  }
+  if (t.tagName === 'TEXTAREA') grow(t);
   if (t.id === 'tgl') S.tanggal = t.value;
   else if (t.id === 'shf') S.shift = t.value;
   else if (t.id === 'qc') S.qc = t.value;
@@ -193,10 +258,12 @@ document.addEventListener('click', e => {
   }
 });
 
+window.addEventListener('resize', () => document.querySelectorAll('#sections textarea').forEach(grow));
+
 function toast(msg, err) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
-  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 3200);
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 3600);
 }
 
 function cleaned() {
@@ -212,6 +279,7 @@ function validate(d) {
   if (!d.tanggal || !d.shift || !(d.qc || '').trim()) return 'Lengkapi Tanggal, Shift, dan Nama QC.';
   for (const sec of ['abnormal','judgment','delivery']) {
     if (d[sec].some(r => !r.line)) return `Pilih Line pada ${SECTIONS[sec].title}.`;
+    if (d[sec].some(r => !TIME_RE.test(normTime(r.jam)))) return `Jam pada ${SECTIONS[sec].title} harus format 24 jam, contoh 08:30.`;
   }
   return '';
 }
@@ -248,18 +316,26 @@ async function save() {
 }
 
 document.getElementById('save').onclick = save;
+
 document.getElementById('wag').onclick = async () => {
   const d = cleaned(); const err = validate(d);
   if (err) return toast(err, true);
-  if (API_URL && !(await save())) return;
-  window.open('https://wa.me/?text=' + encodeURIComponent(report(d)), '_blank');
+  const text = report(d);
+  const win = window.open('', '_blank');          // dibuka dulu agar tidak diblokir browser
+  if (API_URL && !(await save())) { if (win) win.close(); return; }
+  try { await navigator.clipboard.writeText(text); } catch (e) {}
+  const url = 'https://web.whatsapp.com/send?text=' + encodeURIComponent(text);
+  if (win) win.location = url; else window.location = url;
+  toast('WhatsApp Web dibuka. Bila kolom pesan kosong, tempel dengan Ctrl+V.');
 };
+
 document.getElementById('copy').onclick = async () => {
   const d = cleaned(); const err = validate(d);
   if (err) return toast(err, true);
   try { await navigator.clipboard.writeText(report(d)); toast('Teks laporan disalin.'); }
   catch (e) { toast('Gagal menyalin.', true); }
 };
+
 document.getElementById('new').onclick = () => {
   if (!confirm('Mulai laporan baru? Isian saat ini akan dihapus dari layar (data yang sudah disimpan tetap aman di Sheets).')) return;
   S = blank(); persist(); render();
@@ -267,7 +343,7 @@ document.getElementById('new').onclick = () => {
 
 async function init() {
   if (!API_URL) {
-    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG dan Salin tetap bisa dicoba.</div>';
+    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG dan Salin teks tetap bisa dicoba.</div>';
   } else {
     try {
       const j = await (await fetch(API_URL)).json();
