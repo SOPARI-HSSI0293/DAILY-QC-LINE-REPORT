@@ -58,10 +58,22 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .bar button{flex:1;max-width:240px;padding:12px;border-radius:9px;border:0;font:inherit;font-weight:700;cursor:pointer}
 #save{background:var(--green);color:#fff}
 #wag{background:#25d366;color:#08331a}
-#copy{flex:0 0 auto;background:#e6e9e4;color:var(--ink)}
 .bar button:disabled{opacity:.55}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;max-width:90%;display:none;text-align:center;z-index:9}
 .toast.err{background:var(--red)}
+
+/* daftar laporan terbaru */
+.recent{margin-top:12px;margin-bottom:0}
+.recent summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:600;font-size:16px;background:#dfe5dc;display:flex;justify-content:space-between;align-items:center}
+.recent summary::-webkit-details-marker{display:none}
+.rlist{max-height:46vh;overflow-y:auto;padding:6px}
+.rlist .none{padding:6px 8px;margin:0}
+.ritem{display:block;width:100%;text-align:left;border:1px solid transparent;background:#fff;border-radius:7px;padding:8px 10px;font:inherit;cursor:pointer;color:var(--ink)}
+.ritem+.ritem{margin-top:2px}
+.ritem:hover{background:#f1f8f3;border-color:var(--line)}
+.ritem b{display:block;font-size:14px}
+.ritem span{display:block;font-size:13px;color:var(--muted)}
+.ritem.cur{background:#e3f1e7;border-color:var(--green)}
 
 /* layar lebar (PC / laptop) */
 @media (min-width:700px){
@@ -71,7 +83,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 @media (min-width:1000px){
   body{padding-bottom:24px}
   .layout{grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
-  aside{position:sticky;top:12px}
+  aside{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto}
+  .rlist{max-height:calc(100vh - 420px);min-height:160px}
   .meta{grid-template-columns:1fr}
   .meta label{margin-top:10px}
   .meta>div:first-child label{margin-top:0}
@@ -101,8 +114,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div class="bar">
         <button id="save" type="button">Simpan</button>
         <button id="wag" type="button">Kirim ke WAG</button>
-        <button id="copy" type="button">Salin teks</button>
       </div>
+      <div id="recent"></div>
     </aside>
     <div id="sections"></div>
   </div>
@@ -113,9 +126,24 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 // 1) Tempel URL Web App Apps Script di sini (hasil Deploy).
 const API_URL = 'https://script.google.com/macros/s/AKfycbwsP-VS2e52Y1L6I_HGl9K0lwCBKmYzK7zMsULS8AIsqH7Zgjh5GMk-N6MOGuF-b6Tq/exec';
 
-const DEFAULT_LISTS = { line: ['Line 1','Line 2','Line 3'], qc: [], shift: ['Shift 1','Shift 2','Shift 3'] };
+const DEFAULT_LISTS = { line: ['Line 1','Line 2','Line 3'], qc: [], qcs: [], shift: ['Shift 1','Shift 2','Shift 3'] };
 let lists = { ...DEFAULT_LISTS };
 let openItems = [];
+let recent = [];
+
+// ReportID: R-<tanggal>-<no shift>-<kode QC>, contoh R-20261012-1-ATF
+function shiftNo(s) {
+  const m = (s || '').match(/\d+/);
+  return m ? m[0] : String(Math.max(0, lists.shift.indexOf(s)) + 1);
+}
+function kodeQC(nama) {
+  const f = (lists.qcs || []).find(q => q.nama === nama);
+  if (f && f.kode) return f.kode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  return (nama || '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+}
+function makeId(d) {
+  return 'R-' + d.tanggal.replace(/-/g, '') + '-' + shiftNo(d.shift) + '-' + kodeQC(d.qc);
+}
 
 const now = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
@@ -159,8 +187,6 @@ function load() {
 }
 function persist() {
   localStorage.setItem('qc_draft', JSON.stringify(S));
-  if (S.qc) localStorage.setItem('qc_name', S.qc);
-  if (S.shift) localStorage.setItem('qc_shift', S.shift);
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -191,7 +217,8 @@ function render() {
   </div></div></div>`;
 
   let c = '';
-  const shown = openItems.filter(o => !S.abnormal.some(r => r.parentId === o.itemId));
+  const cid = (S.tanggal && S.shift && S.qc) ? makeId(S) : '';
+  const shown = openItems.filter(o => !(cid && o.itemId.startsWith(cid + '-A')) && !S.abnormal.some(r => r.parentId === o.itemId));
   if (shown.length) c += `<div class="card carry"><h2>Abnormal masih Open <span class="badge">${shown.length}</span></h2><div class="body">` +
     shown.map(o => `<div class="item"><b>${esc(o.line)}</b> · ${esc(o.tanggal)} ${esc(o.shift)} ${esc(o.jam)}<br>${esc(o.problem)}<br><button type="button" data-carry="${esc(o.itemId)}">Lanjutkan di laporan ini</button></div>`).join('') +
     `</div></div>`;
@@ -240,8 +267,8 @@ document.addEventListener('input', e => {
   }
   if (t.tagName === 'TEXTAREA') grow(t);
   if (t.id === 'tgl') S.tanggal = t.value;
-  else if (t.id === 'shf') S.shift = t.value;
-  else if (t.id === 'qc') S.qc = t.value;
+  else if (t.id === 'shf') { S.shift = t.value; localStorage.setItem('qc_shift', t.value); }
+  else if (t.id === 'qc') { S.qc = t.value; localStorage.setItem('qc_name', t.value); }
   else if (t.dataset.f) { const [sec,i,k] = t.dataset.f.split('|'); S[sec][+i][k] = t.value; }
   persist();
 });
@@ -251,12 +278,49 @@ document.addEventListener('click', e => {
   if (b.dataset.add) { S[b.dataset.add].push(SECTIONS[b.dataset.add].empty()); persist(); render(); }
   else if (b.dataset.del) { const [sec,i] = b.dataset.del.split('|'); S[sec].splice(+i,1); persist(); render(); }
   else if (b.dataset.seg) { const [sec,i,k,v] = b.dataset.seg.split('|'); S[sec][+i][k] = v; persist(); render(); }
+  else if (b.dataset.load) loadReport(b.dataset.load);
   else if (b.dataset.carry) {
     const o = openItems.find(x => x.itemId === b.dataset.carry);
     S.abnormal.push({ line:o.line, jam:now(), problem:o.problem, rootcause:o.rootcause, action:o.action, status:'Open', parentId:o.itemId });
     persist(); render();
   }
 });
+
+function renderRecent() {
+  const el = document.getElementById('recent');
+  if (!API_URL) { el.innerHTML = ''; return; }
+  const was = el.querySelector('details');
+  const open = was ? was.open : window.matchMedia('(min-width:1000px)').matches;
+  el.innerHTML = `<details class="card recent"${open ? ' open' : ''}><summary>Laporan terbaru <span class="badge${recent.length ? '' : ' zero'}">${recent.length}</span></summary><div class="rlist">` +
+    (recent.length
+      ? recent.map(r => `<button type="button" class="ritem${r.id === S.reportId ? ' cur' : ''}" data-load="${esc(r.id)}"><b>${esc(r.id)}</b><span>${esc(r.tanggal)} · ${esc(r.shift)} · ${esc(r.qc)}</span></button>`).join('')
+      : '<p class="none">Belum ada laporan.</p>') +
+    `</div></details>`;
+}
+
+async function refreshRecent() {
+  if (!API_URL) return;
+  try {
+    const j = await (await fetch(API_URL + '?action=recent')).json();
+    if (j.ok) { recent = j.list; renderRecent(); }
+  } catch (e) {}
+}
+
+async function loadReport(id) {
+  const c = cleaned();
+  const hasContent = ['abnormal','judgment','delivery','control'].some(sec => c[sec].length);
+  if (id !== S.reportId && hasContent && !confirm('Tampilkan laporan ' + id + '? Isian di layar yang belum disimpan akan diganti.')) return;
+  try {
+    const j = await (await fetch(API_URL + '?action=report&id=' + encodeURIComponent(id))).json();
+    if (!j.ok) throw new Error(j.error);
+    const d = j.data;
+    S = { reportId: id, tanggal: d.tanggal, shift: d.shift, qc: d.qc,
+          abnormal: d.abnormal, judgment: d.judgment, delivery: d.delivery, control: d.control };
+    persist(); render(); renderRecent();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Laporan ' + id + ' ditampilkan. Ubah, Simpan, lalu Kirim ke WAG.');
+  } catch (e) { toast('Gagal memuat laporan: ' + e.message, true); }
+}
 
 window.addEventListener('resize', () => document.querySelectorAll('#sections textarea').forEach(grow));
 
@@ -305,12 +369,15 @@ async function save() {
   const d = cleaned(); const err = validate(d);
   if (err) { toast(err, true); return false; }
   if (!API_URL) { toast('Belum terhubung ke Google Sheets (API_URL kosong).', true); return false; }
+  d.reportId = makeId(d);
   const btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Menyimpan...';
   try {
     const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(d) });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error);
-    S.reportId = j.reportId; persist(); toast('Tersimpan.'); return true;
+    S.reportId = j.reportId; persist(); toast('Tersimpan: ' + j.reportId);
+    refreshRecent();
+    return true;
   } catch (e) { toast('Gagal menyimpan: ' + e.message, true); return false; }
   finally { btn.disabled = false; btn.textContent = 'Simpan'; }
 }
@@ -329,28 +396,27 @@ document.getElementById('wag').onclick = async () => {
   toast('WhatsApp Web dibuka. Bila kolom pesan kosong, tempel dengan Ctrl+V.');
 };
 
-document.getElementById('copy').onclick = async () => {
-  const d = cleaned(); const err = validate(d);
-  if (err) return toast(err, true);
-  try { await navigator.clipboard.writeText(report(d)); toast('Teks laporan disalin.'); }
-  catch (e) { toast('Gagal menyalin.', true); }
-};
-
 document.getElementById('new').onclick = () => {
   if (!confirm('Mulai laporan baru? Isian saat ini akan dihapus dari layar (data yang sudah disimpan tetap aman di Sheets).')) return;
-  S = blank(); persist(); render();
+  S = blank(); persist(); render(); renderRecent();
 };
 
 async function init() {
   if (!API_URL) {
-    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG dan Salin teks tetap bisa dicoba.</div>';
+    document.getElementById('banner').innerHTML = '<div class="banner">Mode uji: belum terhubung ke Google Sheets. Tombol Kirim ke WAG tetap bisa dicoba.</div>';
   } else {
     try {
       const j = await (await fetch(API_URL)).json();
-      if (j.ok) { lists = { line: j.line.length ? j.line : DEFAULT_LISTS.line, qc: j.qc, shift: j.shift.length ? j.shift : DEFAULT_LISTS.shift }; openItems = j.open || []; }
+      if (j.ok) {
+        const qcs = j.qcs || [];
+        lists = { line: j.line.length ? j.line : DEFAULT_LISTS.line, qcs, qc: qcs.map(q => q.nama), shift: j.shift.length ? j.shift : DEFAULT_LISTS.shift };
+        openItems = j.open || [];
+        recent = j.recent || [];
+      }
     } catch (e) { toast('Daftar Line gagal dimuat, memakai bawaan.', true); }
   }
   render();
+  renderRecent();
 }
 init();
 </script>
