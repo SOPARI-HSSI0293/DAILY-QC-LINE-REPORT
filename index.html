@@ -81,6 +81,7 @@ body.locked #login{display:flex}
 .recent{margin-top:12px;margin-bottom:0}
 .recent summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:600;font-size:16px;background:#dfe5dc;display:flex;justify-content:space-between;align-items:center}
 .recent summary::-webkit-details-marker{display:none}
+.rfilter{padding:8px 8px 0}
 .rlist{max-height:46vh;overflow-y:auto;padding:6px}
 .rlist .none{padding:6px 8px;margin:0}
 .ritem{display:block;width:100%;text-align:left;border:1px solid transparent;background:#fff;border-radius:7px;padding:8px 10px;font:inherit;cursor:pointer;color:var(--ink)}
@@ -208,7 +209,7 @@ function blank() {
            abnormal:[], judgment:[], delivery:[], control:[] };
 }
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(draftKey())); if (d && d.tanggal) { if (AUTH) d.qc = AUTH.qc; return d; } } catch(e) {}
+  try { const d = JSON.parse(localStorage.getItem(draftKey())); if (d && d.tanggal) { if (AUTH && !AUTH.sup) d.qc = AUTH.qc; return d; } } catch(e) {}
   return blank();
 }
 function persist() {
@@ -284,6 +285,7 @@ document.addEventListener('focusout', e => {
 
 document.addEventListener('input', e => {
   const t = e.target;
+  if (t.id === 'rfilter') { rfilter = t.value; renderRecent(); return; }
   if (t.dataset && t.dataset.time) {
     let v = t.value.replace(/[^\d:]/g, '');
     if (/^\d{2}$/.test(v) && e.inputType !== 'deleteContentBackward') v += ':';
@@ -310,14 +312,21 @@ document.addEventListener('click', e => {
   }
 });
 
+let rfilter = '';
 function renderRecent() {
   const el = document.getElementById('recent');
   if (!API_URL || !AUTH) { el.innerHTML = ''; return; }
   const was = el.querySelector('details');
   const open = was ? was.open : window.matchMedia('(min-width:1000px)').matches;
-  el.innerHTML = `<details class="card recent"${open ? ' open' : ''}><summary>Laporan terbaru <span class="badge${recent.length ? '' : ' zero'}">${recent.length}</span></summary><div class="rlist">` +
-    (recent.length
-      ? recent.map(r => `<button type="button" class="ritem${r.id === S.reportId ? ' cur' : ''}" data-load="${esc(r.id)}"><b>${esc(r.id)}</b><span>${esc(r.tanggal)} · ${esc(r.shift)} · ${esc(r.qc)}</span></button>`).join('')
+  const names = [...new Set(recent.map(r => r.qc))].sort();
+  if (rfilter && !names.includes(rfilter)) rfilter = '';
+  const list = rfilter ? recent.filter(r => r.qc === rfilter) : recent;
+  const filter = AUTH.sup
+    ? `<div class="rfilter"><select id="rfilter"><option value="">Semua member</option>${names.map(n => `<option${n === rfilter ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`
+    : '';
+  el.innerHTML = `<details class="card recent"${open ? ' open' : ''}><summary>${AUTH.sup ? 'Laporan terbaru (semua member)' : 'Laporan terbaru'} <span class="badge${list.length ? '' : ' zero'}">${list.length}</span></summary>${filter}<div class="rlist">` +
+    (list.length
+      ? list.map(r => `<button type="button" class="ritem${r.id === S.reportId ? ' cur' : ''}" data-load="${esc(r.id)}"><b>${esc(r.id)}</b><span>${esc(r.tanggal)} · ${esc(r.shift)} · ${esc(r.qc)}</span></button>`).join('')
       : '<p class="none">Belum ada laporan.</p>') +
     `</div></details>`;
 }
@@ -395,7 +404,7 @@ async function save() {
   d.reportId = makeId(d);
   const btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Menyimpan...';
   try {
-    const j = await api('save', d);
+    const j = await api('save', { data: d });
     S.reportId = j.reportId; persist(); toast('Tersimpan: ' + j.reportId);
     refreshRecent();
     return true;
@@ -423,7 +432,7 @@ document.getElementById('new').onclick = () => {
 };
 
 async function api(action, extra = {}) {
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, qc: AUTH.qc, pass: AUTH.pass, ...extra }) });
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ ...extra, action, qc: AUTH.qc, pass: AUTH.pass }) });
   const j = await res.json();
   if (!j.ok) throw new Error(j.error);
   return j;
@@ -438,7 +447,7 @@ function fillLogin() {
 
 function showApp() {
   document.body.classList.remove('locked');
-  document.getElementById('who').textContent = AUTH ? AUTH.qc : '';
+  document.getElementById('who').textContent = AUTH ? AUTH.qc + (AUTH.sup ? ' (Supervisor)' : '') : '';
   document.getElementById('logout').style.display = AUTH ? '' : 'none';
 }
 
@@ -446,6 +455,7 @@ async function enter(qc, pass, silent) {
   AUTH = { qc, pass };
   try {
     const j = await api('login');
+    AUTH.sup = !!j.sup;
     openItems = j.open || [];
     recent = j.recent || [];
     sessionStorage.setItem('qc_auth', JSON.stringify(AUTH));
